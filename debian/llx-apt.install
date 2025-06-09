@@ -1,0 +1,2 @@
+install/bin/*			/usr/sbin/
+install/releases/jammy/		/usr/share/llx-apt/

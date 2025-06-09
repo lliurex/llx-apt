@@ -1,0 +1,14 @@
+Source: llx-apt
+Section: misc
+Priority: optional
+Maintainer: LliureX Team <lliurex@gva.es> 
+Standards-Version: 4.3.0
+Build-Depends: debhelper-compat (= 10)
+Homepage: https://github.com/lliurex/llx-apt
+
+Package: llx-apt
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, systemd, udev
+Description:  LliureX apt wrapper for pre and unsateble releases
+ Provides an apt shell script wrapper to acces pre and unstable releases
+ with no changes at all in apt configuration.
