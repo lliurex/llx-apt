@@ -1,0 +1,11 @@
+#!/bin/sh
+
+#  Description:
+#
+# apt wrapper to manage LliureX "unstable" repository
+# The script allows a limited set of the functionallity of apt command (search, install, etc ...)
+# without permanent changes in sources.list, apt configuration, apt lists, apt cache, etc
+# Run the script with no parameters to get help.
+#
+
+exec llx-apt unstable "$@"

@@ -1,0 +1,125 @@
+#!/bin/sh
+
+#  Description:
+#
+# apt wrapper to manage LliureX "pre" and "unstable" repository
+# The script allows a limited set of the functionallity of apt command (search, install, etc ...)
+# without permanent changes in sources.list, apt configuration, apt lists, apt cache, etc
+# Run the script with no parameters to get help.
+#
+
+###############
+# global vars #
+###############
+LLX_APT_SOURCES="/var/lib/llx-apt/_@_REPO_@_/sources.list"
+LLX_APT_BASE="/usr/share/llx-apt/_@_REPO_@__sources.list"
+
+LLX_APT_OPTIONS="Dir::Cache::Archives|/var/cache/llx-apt/_@_REPO_@_/apt-archives/ Dir::State::Lists|/var/lib/llx-apt/_@_REPO_@_/lists/ Dir::Cache::archives::partial|/var/cache/llx-apt/_@_REPO_@_/apt-archives/partial/ Dir::Cache::Srcpkgcache|/var/cache/llx-apt/_@_REPO_@_/apt-archives/src/ Dir::Etc::Sourcelist|$LLX_APT_SOURCES"
+
+LLX_APT_CMDS="list | search | show | update | install | remove | clean"
+LLX_APT_RELEASES="pre|unstable"
+# export this variable for dry-run
+#LLX_APT_DEBUG=""
+
+#############
+# functions #
+#############
+die(){
+        TYPE="ERROR"
+        if [ "$#" -gt 1 ] ; then
+                TYPE="$1"
+                shift
+        fi
+        printf "${TYPE}: " >&2
+        while [ "$1" ] ; do
+                echo "$1" >&2
+                shift
+        done
+        echo "" >&2
+
+        exit 1
+}
+
+usage(){
+        die "Usage" "$(basename "$0") {$LLX_APT_RELEASES} [OPTIONS ...] COMMAND [ARGUMENTS ...]"  \
+            "       OPTIONS: [*ANY APT OPTION*]" \
+	    "       COMMAND: {$LLX_APT_CMDS}"
+}
+
+expand_repo(){
+	echo "$1" |sed -e "s%_@_REPO_@_%$2%g"
+}
+
+create_environment(){
+	# create required dirs
+	for D0 in $LLX_APT_OPTIONS ; do
+		D1="${D0#*|}"
+		DIRNAME="${D1%/*}"
+		mkdir -p "$DIRNAME"
+	done
+
+	# create sources.list from the original file
+	:> "$LLX_APT_SOURCES"
+	for f in "/etc/apt/sources.list" "$LLX_APT_BASE" ; do
+		if [ -r "$f" ] ; then
+			cat "$f" >> "$LLX_APT_SOURCES"
+		fi
+	done
+}
+
+main(){
+	# sanity checks
+
+	[ "$1" ] || usage
+
+	REPO="$1"
+	if echo "|${LLX_APT_RELEASES}|" |tr -d " " |grep -qF "|$REPO|" ; then
+		LLX_APT_SOURCES="$(expand_repo "$LLX_APT_SOURCES" "$REPO")"
+		LLX_APT_OPTIONS="$(expand_repo "$LLX_APT_OPTIONS" "$REPO")"
+		LLX_APT_BASE="$(expand_repo "$LLX_APT_BASE" "$REPO")"
+		export LLX_APT_SOURCES LLX_APT_OPTIONS LLX_APT_BASE
+	else
+		die "Invalid release $REPO"
+	fi
+	shift
+
+	# preserve user arguments
+	USER_CMD_ARGS="$@"
+
+	# search for command string
+	while echo "x$1" | grep -q "^x-" ; do
+		shift
+	done
+	USER_CMD="$1"
+
+	if [ -z "$LLX_APT_DEBUG" ] ; then
+		# test root privileges
+		[ $(id -u) -eq 0 ] || die "root privileges required"
+	fi
+
+	# check against command list
+	if ! echo "|$LLX_APT_CMDS|" |tr -d " " |grep -qF "|$USER_CMD|" ; then
+		die "Unknow command $USER_CMD"
+	fi
+	# Build custom apt options
+	LLX_APT_EXTRA=""
+	for OP0 in $LLX_APT_OPTIONS ; do
+		OP="$(echo "$OP0" |sed -e "s%|%='%;s%$%'%")"
+		LLX_APT_EXTRA="$LLX_APT_EXTRA -o $OP"
+	done
+	if [ -z "$LLX_APT_DEBUG" ] ; then
+		create_environment || die "Failed to create apt environment"
+		apt $LLX_APT_EXTRA $USER_CMD_ARGS
+	else
+		echo "DEBUG: Command to run"
+		echo "       apt $LLX_APT_EXTRA $USER_CMD_ARGS"
+	fi
+}
+
+################
+# main program #
+################
+rc=0 
+main "$@" || rc=$?
+exit $rc
+
