@@ -15,9 +15,13 @@ LLX_APT_SOURCES="/var/lib/llx-apt/_@_REPO_@_/sources.list"
 LLX_APT_BASE_DIR="/usr/share/llx-apt"
 LLX_APT_RELEASE_SOURCES="$LLX_APT_BASE_DIR/_@_REPO_@_/sources.list"
 
-LLX_APT_OPTIONS="Dir::Cache::Archives|/var/cache/llx-apt/_@_REPO_@_/apt-archives/ Dir::State::Lists|/var/lib/llx-apt/_@_REPO_@_/lists/ Dir::Cache::archives::partial|/var/cache/llx-apt/_@_REPO_@_/apt-archives/partial/ Dir::Cache::Srcpkgcache|/var/cache/llx-apt/_@_REPO_@_/apt-archives/src/ Dir::Etc::Sourcelist|$LLX_APT_SOURCES"
+LLX_APT_OPTIONS="Dir::Cache::Archives|/var/cache/llx-apt/_@_REPO_@_/apt-archives/ Dir::State::Lists|/var/lib/llx-apt/_@_REPO_@_/lists/ Dir::Etc::Sourcelist|$LLX_APT_SOURCES"
 
-LLX_APT_CMDS="list | search | show | update | install | remove | clean | policy"
+#LLX_APT_OPTIONS="Dir::Cache::Archives|/var/cache/llx-apt/_@_REPO_@_/apt-archives/ Dir::State::Lists|/var/lib/llx-apt/_@_REPO_@_/lists/ Dir::Cache::archives::partial|/var/cache/llx-apt/_@_REPO_@_/apt-archives/partial/ Dir::Cache::Srcpkgcache|/var/cache/llx-apt/_@_REPO_@_/apt-archives/src/ Dir::Etc::Sourcelist|$LLX_APT_SOURCES"
+
+LLX_APT_NONROOT_CMDS="list | search | show | policy"
+LLX_APT_ROOT_CMDS="update | install | remove | clean"
+LLX_APT_CMDS="$LLX_APT_NONROOT_CMDS | $LLX_APT_ROOT_CMDS"
 LLX_APT_RELEASES0="pre|unstable"
 
 # use only available releases
@@ -29,7 +33,7 @@ for r in $(echo "$LLX_APT_RELEASES0" |tr "|" " ") ; do
 done
 LLX_APT_RELEASES="${LLX_APT_RELEASES#*|}"
 
-
+LLX_ROOT_REQUIRED=""
 # export this variable for dry-run
 #LLX_APT_DEBUG=""
 
@@ -104,27 +108,34 @@ main(){
 	done
 	USER_CMD="$1"
 
-	if [ -z "$LLX_APT_DEBUG" ] ; then
-		# test root privileges
-		[ $(id -u) -eq 0 ] || die "root privileges required"
-	fi
-
 	# check against command list
 	if ! echo "|$LLX_APT_CMDS|" |tr -d " " |grep -qF "|$USER_CMD|" ; then
 		die "Unknow command $USER_CMD"
 	fi
+
+	# check against root command list
+	if echo "|$LLX_APT_ROOT_CMDS|" |tr -d " " |grep -qF "|$USER_CMD|" ; then
+		LLX_ROOT_REQUIRED="Y"
+	fi
+
+	if [ -z "$LLX_APT_DEBUG" ] && [ "$LLX_ROOT_REQUIRED" ]; then
+		# test root privileges
+		[ $(id -u) -eq 0 ] || die "root privileges required"
+	fi
+
 	# Build custom apt options
 	LLX_APT_EXTRA=""
 	for OP0 in $LLX_APT_OPTIONS ; do
-		OP="$(echo "$OP0" |sed -e "s%|%='%;s%$%'%")"
+		#OP="$(echo "$OP0" |sed -e "s%|%='%;s%$%'%")"
+		OP="$(echo "$OP0" |sed -e "s%|%=%")"
 		LLX_APT_EXTRA="$LLX_APT_EXTRA -o $OP"
 	done
-	if [ -z "$LLX_APT_DEBUG" ] ; then
-		create_environment || die "Failed to create apt environment"
-		apt $LLX_APT_EXTRA $USER_CMD_ARGS
-	else
+	if [ "$LLX_APT_DEBUG" ] ; then
 		echo "DEBUG: Command to run"
 		echo "       apt $LLX_APT_EXTRA $USER_CMD_ARGS"
+	else
+		create_environment || die "Failed to create apt environment"
+		apt $LLX_APT_EXTRA $USER_CMD_ARGS
 	fi
 }
 
