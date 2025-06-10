@@ -12,12 +12,24 @@
 # global vars #
 ###############
 LLX_APT_SOURCES="/var/lib/llx-apt/_@_REPO_@_/sources.list"
-LLX_APT_BASE="/usr/share/llx-apt/_@_REPO_@_/sources.list"
+LLX_APT_BASE_DIR="/usr/share/llx-apt"
+LLX_APT_RELEASE_SOURCES="$LLX_APT_BASE_DIR/_@_REPO_@_/sources.list"
 
 LLX_APT_OPTIONS="Dir::Cache::Archives|/var/cache/llx-apt/_@_REPO_@_/apt-archives/ Dir::State::Lists|/var/lib/llx-apt/_@_REPO_@_/lists/ Dir::Cache::archives::partial|/var/cache/llx-apt/_@_REPO_@_/apt-archives/partial/ Dir::Cache::Srcpkgcache|/var/cache/llx-apt/_@_REPO_@_/apt-archives/src/ Dir::Etc::Sourcelist|$LLX_APT_SOURCES"
 
-LLX_APT_CMDS="list | search | show | update | install | remove | clean"
-LLX_APT_RELEASES="pre|unstable"
+LLX_APT_CMDS="list | search | show | update | install | remove | clean | policy"
+LLX_APT_RELEASES0="pre|unstable"
+
+# use only available releases
+LLX_APT_RELEASES=""
+for r in $LLX_APT_RELEASES0 ; do
+	if [ -d "$LLX_APT_BASE_DIR/$r" ] ; then
+		LLX_APT_RELEASES="$LLX_APT_RELEASES|$r"
+	fi
+done
+LLX_APT_RELEASES="${LLX_APT_RELEASES#*|}"
+
+
 # export this variable for dry-run
 #LLX_APT_DEBUG=""
 
@@ -76,7 +88,7 @@ main(){
 	if echo "|${LLX_APT_RELEASES}|" |tr -d " " |grep -qF "|$REPO|" ; then
 		LLX_APT_SOURCES="$(expand_repo "$LLX_APT_SOURCES" "$REPO")"
 		LLX_APT_OPTIONS="$(expand_repo "$LLX_APT_OPTIONS" "$REPO")"
-		LLX_APT_BASE="$(expand_repo "$LLX_APT_BASE" "$REPO")"
+		LLX_APT_RELEASE_SOURCES="$(expand_repo "$LLX_APT_RELEASE_SOURCES" "$REPO")"
 		export LLX_APT_SOURCES LLX_APT_OPTIONS LLX_APT_BASE
 	else
 		die "Invalid release $REPO"
