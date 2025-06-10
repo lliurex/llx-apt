@@ -22,7 +22,7 @@ LLX_APT_RELEASES0="pre|unstable"
 
 # use only available releases
 LLX_APT_RELEASES=""
-for r in $LLX_APT_RELEASES0 ; do
+for r in $(echo "$LLX_APT_RELEASES0" |tr "|" " ") ; do
 	if [ -d "$LLX_APT_BASE_DIR/$r" ] ; then
 		LLX_APT_RELEASES="$LLX_APT_RELEASES|$r"
 	fi
