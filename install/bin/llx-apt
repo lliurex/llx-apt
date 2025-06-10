@@ -72,7 +72,7 @@ create_environment(){
 
 	# create sources.list from the original file
 	:> "$LLX_APT_SOURCES"
-	for f in "/etc/apt/sources.list" "$LLX_APT_BASE" ; do
+	for f in "/etc/apt/sources.list" "$LLX_APT_RELEASE_SOURCES" ; do
 		if [ -r "$f" ] ; then
 			cat "$f" >> "$LLX_APT_SOURCES"
 		fi
