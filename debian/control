@@ -8,7 +8,7 @@ Homepage: https://github.com/lliurex/llx-apt
 
 Package: llx-apt
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, systemd, udev
-Description:  LliureX apt wrapper for pre and unsateble releases
- Provides an apt shell script wrapper to acces pre and unstable releases
- with no changes at all in apt configuration.
+Depends: ${shlibs:Depends}, ${misc:Depends}, apt
+Description:  LliureX apt wrapper to manage packages from other releases
+ The package provides an apt shell script wrapper to access pre and unstable
+ releases without permanent changes in apt configuration files.
