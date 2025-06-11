@@ -1,3 +1,9 @@
+llx-apt (1.1) jammy; urgency=medium
+
+  * Added option '+ubuntu' in release name to include sources from ubuntu
+
+ -- Luis Garcia Gisbert <luisgg@gmail.com>  Wed, 11 Jun 2025 22:30:36 +0200
+
 llx-apt (1.0) jammy; urgency=medium
 
   * First version on jammy 
