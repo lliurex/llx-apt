@@ -20,7 +20,7 @@ LLX_APT_OPTIONS="Dir::Cache::Archives|/var/cache/llx-apt/_@_REPO_@_/apt-archives
 
 #LLX_APT_OPTIONS="Dir::Cache::Archives|/var/cache/llx-apt/_@_REPO_@_/apt-archives/ Dir::State::Lists|/var/lib/llx-apt/_@_REPO_@_/lists/ Dir::Cache::archives::partial|/var/cache/llx-apt/_@_REPO_@_/apt-archives/partial/ Dir::Cache::Srcpkgcache|/var/cache/llx-apt/_@_REPO_@_/apt-archives/src/ Dir::Etc::Sourcelist|$LLX_APT_SOURCES"
 
-LLX_APT_NONROOT_CMDS="list | search | show | policy | rdepends"
+LLX_APT_NONROOT_CMDS="list | search | show | policy | rdepends | download"
 LLX_APT_ROOT_CMDS="update | install | remove | clean"
 LLX_APT_CMDS="$LLX_APT_NONROOT_CMDS | $LLX_APT_ROOT_CMDS"
 LLX_APT_RELEASES0="pre|unstable"
