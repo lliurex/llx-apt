@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 #  Description:
 #
@@ -14,12 +14,13 @@
 LLX_APT_SOURCES="/var/lib/llx-apt/_@_REPO_@_/sources.list"
 LLX_APT_BASE_DIR="/usr/share/llx-apt"
 LLX_APT_RELEASE_SOURCES="$LLX_APT_BASE_DIR/_@_REPO_@_/sources.list"
+LLX_APT_UBUNTU_SOURCES="$LLX_APT_BASE_DIR/ubuntu/sources.list"
 
 LLX_APT_OPTIONS="Dir::Cache::Archives|/var/cache/llx-apt/_@_REPO_@_/apt-archives/ Dir::State::Lists|/var/lib/llx-apt/_@_REPO_@_/lists/ Dir::Etc::Sourcelist|$LLX_APT_SOURCES"
 
 #LLX_APT_OPTIONS="Dir::Cache::Archives|/var/cache/llx-apt/_@_REPO_@_/apt-archives/ Dir::State::Lists|/var/lib/llx-apt/_@_REPO_@_/lists/ Dir::Cache::archives::partial|/var/cache/llx-apt/_@_REPO_@_/apt-archives/partial/ Dir::Cache::Srcpkgcache|/var/cache/llx-apt/_@_REPO_@_/apt-archives/src/ Dir::Etc::Sourcelist|$LLX_APT_SOURCES"
 
-LLX_APT_NONROOT_CMDS="list | search | show | policy"
+LLX_APT_NONROOT_CMDS="list | search | show | policy | rdepends"
 LLX_APT_ROOT_CMDS="update | install | remove | clean"
 LLX_APT_CMDS="$LLX_APT_NONROOT_CMDS | $LLX_APT_ROOT_CMDS"
 LLX_APT_RELEASES0="pre|unstable"
@@ -34,6 +35,7 @@ done
 LLX_APT_RELEASES="${LLX_APT_RELEASES#*|}"
 
 LLX_ROOT_REQUIRED=""
+
 # export this variable for dry-run
 #LLX_APT_DEBUG=""
 
@@ -57,9 +59,10 @@ die(){
 }
 
 usage(){
-        die "Usage" "$(basename "$0") {$LLX_APT_RELEASES} [OPTIONS ...] COMMAND [ARGUMENTS ...]"  \
+        die "Usage" "$(basename "$0") {$LLX_APT_RELEASES}[+ubuntu] [OPTIONS ...] COMMAND [ARGUMENTS ...]"  \
             "       OPTIONS: [*ANY APT OPTION*]" \
-	    "       COMMAND: {$LLX_APT_CMDS}"
+	    "       COMMAND: {$LLX_APT_CMDS}" \
+	    "       (append '+ubuntu' to include ubuntu in sources.list)"
 }
 
 expand_repo(){
@@ -76,7 +79,7 @@ create_environment(){
 
 	# create sources.list from the original file
 	:> "$LLX_APT_SOURCES"
-	for f in "/etc/apt/sources.list" "$LLX_APT_RELEASE_SOURCES" ; do
+	for f in /etc/apt/sources.list $LLX_APT_RELEASE_SOURCES ; do
 		if [ -r "$f" ] ; then
 			cat "$f" >> "$LLX_APT_SOURCES"
 		fi
@@ -88,17 +91,21 @@ main(){
 
 	[ "$1" ] || usage
 
-	REPO="$1"
+	REPO="${1%+*}"
+
 	if echo "|${LLX_APT_RELEASES}|" |tr -d " " |grep -qF "|$REPO|" ; then
 		LLX_APT_SOURCES="$(expand_repo "$LLX_APT_SOURCES" "$REPO")"
 		LLX_APT_OPTIONS="$(expand_repo "$LLX_APT_OPTIONS" "$REPO")"
 		LLX_APT_RELEASE_SOURCES="$(expand_repo "$LLX_APT_RELEASE_SOURCES" "$REPO")"
-		export LLX_APT_SOURCES LLX_APT_OPTIONS LLX_APT_BASE
 	else
 		die "Invalid release $REPO"
 	fi
-	shift
+	if echo "$1" | grep -q "+ubuntu$" ; then
+		LLX_APT_RELEASE_SOURCES="$LLX_APT_RELEASE_SOURCES $LLX_APT_UBUNTU_SOURCES"
+	fi
+	export LLX_APT_SOURCES LLX_APT_OPTIONS LLX_APT_RELEASE_SOURCES
 
+	shift
 	# preserve user arguments
 	USER_CMD_ARGS="$@"
 
@@ -137,7 +144,8 @@ main(){
 		if [ "$LLX_ROOT_REQUIRED" ] ; then
 			create_environment || die "Failed to create apt environment"
 		fi
-		apt $LLX_APT_EXTRA $USER_CMD_ARGS
+		# use a dirty trick to avoid output of warnings related to duplicated lines in sources.list
+		apt $LLX_APT_EXTRA $USER_CMD_ARGS 2> >(grep -v 'W: .*' >&2)
 	fi
 }
 
