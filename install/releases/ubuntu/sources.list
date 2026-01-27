@@ -1,0 +1,3 @@
+deb http://archive.ubuntu.com/ubuntu/ ${RELEASE}-updates main multiverse restricted universe
+deb http://archive.ubuntu.com/ubuntu/ ${RELEASE}-security main multiverse restricted universe
+deb http://archive.ubuntu.com/ubuntu/ ${RELEASE} main multiverse restricted universe

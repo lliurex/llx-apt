@@ -1,0 +1,1 @@
+deb [ trusted=yes ] https://llx.laberit.com/baikonur/${RELEASE}/unstable ${RELEASE} main
