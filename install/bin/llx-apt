@@ -150,7 +150,7 @@ main(){
 		echo "       apt $LLX_APT_EXTRA $USER_CMD_ARGS"
 	else
 		if [ "$LLX_ROOT_REQUIRED" ] ; then
-			if [ ${#LLX_NO_UPDATE} -gt 0 ]
+			if [ ${#LLX_NO_PINNING} -gt 0 ]
 			then
 				#Remove pinning, remember to restore it
 				echo "#############################"
