@@ -1,2 +1,2 @@
 install/bin/*			/usr/sbin/
-install/releases/*	/usr/share/llx-apt/
+install/data/*	/usr/share/llx-apt/
