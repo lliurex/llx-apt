@@ -61,8 +61,10 @@ die(){
 }
 
 usage(){
-        die "Usage" "$(basename "$0") {$LLX_APT_RELEASES}[+ubuntu] [OPTIONS ...] COMMAND [ARGUMENTS ...]"  \
+        die "Usage" "$(basename "$0") {$LLX_APT_RELEASES}[+ubuntu] [--no-update] [--no-pinning] [OPTIONS ...] COMMAND [ARGUMENTS ...]"  \
             "       OPTIONS: [*ANY APT OPTION*]" \
+	    "       --no-update: Doesn't update apt information" \
+	    "       --no-pinning: Disable pinning for COMMAND" \
 	    "       COMMAND: {$LLX_APT_CMDS}" \
 	    "       (append '+ubuntu' to include ubuntu in sources.list)"
 }
@@ -93,6 +95,8 @@ main(){
 	# sanity checks
 
 	[ "$1" ] || usage
+
+	[ $(echo $@ | grep -c "help") -gt 0 ] && usage
 
 	REPO="${1%+*}"
 
@@ -133,10 +137,10 @@ main(){
 		[ $(id -u) -eq 0 ] || die "root privileges required"
 	fi
 
-	LLX_NO_UPDATE=$(echo $@ | grep -o [-]*no-update)
+	LLX_NO_UPDATE=$(echo $USER_CMD_ARGS | grep -o [-]*no-update)
 	USER_CMD_ARGS=${USER_CMD_ARGS/$LLX_NO_UPDATE/}
-	LLX_NO_PINNING=$(echo $@ | grep -o [-]*no-pinning)
-	USER_CMD_ARGS=${USER_CMD_ARGS/$LLX_NO_PINNING/}
+	LLX_NO_PINNING=$(echo $USER_CMD_ARGS | grep -o [-]*no-pinning)
+	USER_CMD_ARGS=$(echo ${USER_CMD_ARGS/$LLX_NO_PINNING/} | xargs)
 
 	# Build custom apt options
 	LLX_APT_EXTRA=""
@@ -165,7 +169,7 @@ main(){
 				echo "Are you sure? y/[n] "
 				read SURE
 				[[ $SURE != "y" ]] && die "Operation aborted"
-				mount --bind /usr/share/llx-apt/data/lliurex-pinning /etc/apt/preferences/lliurex-pinning
+				mount --bind /usr/share/llx-apt/lliurex-pinning /etc/apt/preferences.d/lliurex-pinning
 			fi
 			create_environment || die "Failed to create apt environment"
 			if [[ $USER_CMD != "update" ]] && [ ${#LLX_NO_UPDATE} -eq 0 ]
@@ -183,6 +187,6 @@ main(){
 ################
 rc=0 
 main "$@" || rc=$?
-[ ${#LLX_NO_PINNING} -gt 0 ] && umount /etc/apt/preferences/lliurex-pinning
+[ ${#LLX_NO_PINNING} -gt 0 ] && umount /etc/apt/preferences.d/lliurex-pinning
 exit $rc
 
