@@ -165,6 +165,7 @@ main(){
 				echo "Are you sure? y/[n] "
 				read SURE
 				[[ $SURE != "y" ]] && die "Operation aborted"
+				mount --bind /usr/share/llx-apt/data/lliurex-pinning /etc/apt/preferences/lliurex-pinning
 			fi
 			create_environment || die "Failed to create apt environment"
 			if [[ $USER_CMD != "update" ]] && [ ${#LLX_NO_UPDATE} -eq 0 ]
@@ -182,5 +183,6 @@ main(){
 ################
 rc=0 
 main "$@" || rc=$?
+[ ${#LLX_NO_PINNING} -gt 0 ] && umount /etc/apt/preferences/lliurex-pinning
 exit $rc
 
