@@ -8,13 +8,6 @@
 # Run the script with no parameters to get help.
 #
 
-set -m
-trap clean SIGINT
-
-clean () {
-	[ $(mount | grep -c lliurex-pinning) -gt 0 ] && umount /etc/apt/preferences.d/lliurex-pinning
-}
-
 ###############
 # global vars #
 ###############
@@ -62,18 +55,22 @@ die(){
                 echo "$1" >&2
                 shift
         done
+		usage
         echo "" >&2
 
         exit 1
 }
 
 usage(){
-        die "Usage" "$(basename "$0") {$LLX_APT_RELEASES}[+ubuntu] [--no-update] [--no-pinning] [OPTIONS ...] COMMAND [ARGUMENTS ...]"  \
-            "       OPTIONS: [*ANY APT OPTION*]" \
-	    "       --no-update: Doesn't update apt information" \
-	    "       --no-pinning: Disable pinning for COMMAND" \
-	    "       COMMAND: {$LLX_APT_CMDS}" \
-	    "       (append '+ubuntu' to include ubuntu in sources.list)"
+        printf "\r      \n \
+        Usage\n
+		$(basename "$0") {$LLX_APT_RELEASES}[+ubuntu] [--no-update] [--no-pinning] [OPTIONS ...] COMMAND [ARGUMENTS ...]\n \
+	   \n\t\tRepository: Mandatory. One from pre or unstable. Additionally add +ubuntu to include ubuntu repositories
+	   \t--no-update: Doesn't update apt information\n \
+	   \t--no-pinning: Disable pinning\n \
+       \tOPTIONS: [*ANY APT OPTION*]\n \
+	   \tCOMMAND: {$LLX_APT_CMDS}\n \
+	   \t(append '+ubuntu' to include ubuntu in sources.list)\n"
 }
 
 expand_repo(){
@@ -101,9 +98,9 @@ create_environment(){
 main(){
 	# sanity checks
 
-	[ "$1" ] || usage
+	[ "$1" ] || die
 
-	[ $(echo $@ | grep -c "help") -gt 0 ] && usage
+	[ $(echo $@ | grep -c "help") -gt 0 ] && die
 
 	REPO="${1%+*}"
 
@@ -176,12 +173,16 @@ main(){
 				echo "Are you sure? y/[n] "
 				read SURE
 				[[ $SURE != "y" ]] && die "Operation aborted"
-				mount --onlyonce --bind /usr/share/llx-apt/lliurex-pinning /etc/apt/preferences.d/lliurex-pinning
 			fi
 			create_environment || die "Failed to create apt environment"
 			if [[ $USER_CMD != "update" ]] && [ ${#LLX_NO_UPDATE} -eq 0 ]
 			then
 				apt-get update
+			fi
+			#Pinning option must be added after repositories are updated
+			if [ ${#LLX_NO_PINNING} -gt 0 ]
+			then
+				LLX_APT_EXTRA=$LLX_APT_EXTRA" -o APT::Default-release=$RELEASE"
 			fi
 		fi
 		# use a dirty trick to avoid output of warnings related to duplicated lines in sources.list
@@ -194,6 +195,5 @@ main(){
 ################
 rc=0 
 main "$@" || rc=$?
-clean
 exit $rc
 
