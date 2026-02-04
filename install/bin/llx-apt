@@ -11,6 +11,8 @@
 ###############
 # global vars #
 ###############
+RELEASE=$(lsb_release -s --codename 2>/dev/null)
+export RELEASE
 LLX_APT_SOURCES="/var/lib/llx-apt/_@_REPO_@_/sources.list"
 LLX_APT_BASE_DIR="/usr/share/llx-apt"
 LLX_APT_RELEASE_SOURCES="$LLX_APT_BASE_DIR/_@_REPO_@_/sources.list"
@@ -53,16 +55,22 @@ die(){
                 echo "$1" >&2
                 shift
         done
+		usage
         echo "" >&2
 
         exit 1
 }
 
 usage(){
-        die "Usage" "$(basename "$0") {$LLX_APT_RELEASES}[+ubuntu] [OPTIONS ...] COMMAND [ARGUMENTS ...]"  \
-            "       OPTIONS: [*ANY APT OPTION*]" \
-	    "       COMMAND: {$LLX_APT_CMDS}" \
-	    "       (append '+ubuntu' to include ubuntu in sources.list)"
+        printf "\r      \n \
+        Usage\n
+		$(basename "$0") {$LLX_APT_RELEASES}[+ubuntu] [--no-update] [--no-pinning] [OPTIONS ...] COMMAND [ARGUMENTS ...]\n \
+	   \n\t\tRepository: Mandatory. One from pre or unstable. Additionally add +ubuntu to include ubuntu repositories
+	   \t--no-update: Doesn't update apt information\n \
+	   \t--no-pinning: Disable pinning\n \
+       \tOPTIONS: [*ANY APT OPTION*]\n \
+	   \tCOMMAND: {$LLX_APT_CMDS}\n \
+	   \t(append '+ubuntu' to include ubuntu in sources.list)\n"
 }
 
 expand_repo(){
@@ -81,15 +89,18 @@ create_environment(){
 	:> "$LLX_APT_SOURCES"
 	for f in /etc/apt/sources.list $LLX_APT_RELEASE_SOURCES ; do
 		if [ -r "$f" ] ; then
-			cat "$f" >> "$LLX_APT_SOURCES"
+			cat "$f" | envsubst >> "$LLX_APT_SOURCES"
 		fi
 	done
+
 }
 
 main(){
 	# sanity checks
 
-	[ "$1" ] || usage
+	[ "$1" ] || die
+
+	[ $(echo $@ | grep -c "help") -gt 0 ] && die
 
 	REPO="${1%+*}"
 
@@ -130,6 +141,11 @@ main(){
 		[ $(id -u) -eq 0 ] || die "root privileges required"
 	fi
 
+	LLX_NO_UPDATE=$(echo $USER_CMD_ARGS | grep -o [-]*no-update)
+	USER_CMD_ARGS=${USER_CMD_ARGS/$LLX_NO_UPDATE/}
+	LLX_NO_PINNING=$(echo $USER_CMD_ARGS | grep -o [-]*no-pinning)
+	USER_CMD_ARGS=$(echo ${USER_CMD_ARGS/$LLX_NO_PINNING/} | xargs)
+
 	# Build custom apt options
 	LLX_APT_EXTRA=""
 	for OP0 in $LLX_APT_OPTIONS ; do
@@ -142,7 +158,32 @@ main(){
 		echo "       apt $LLX_APT_EXTRA $USER_CMD_ARGS"
 	else
 		if [ "$LLX_ROOT_REQUIRED" ] ; then
+			if [ ${#LLX_NO_PINNING} -gt 0 ]
+			then
+				#Remove pinning, remember to restore it
+				echo "#############################"
+				echo "#---------------------------#"
+				echo "#_________ATTENTION_________#"
+				echo "#         ATTENTION         #"
+				echo "#---------------------------#"
+				echo "#############################"
+				echo "Removing pinning is dangerous and could let to troubles"
+				echo "Only continue if you're sure that pinning really must be removed"
+				echo "ONLY IF YOU'RE SURE"
+				echo "Are you sure? y/[n] "
+				read SURE
+				[[ $SURE != "y" ]] && die "Operation aborted"
+			fi
 			create_environment || die "Failed to create apt environment"
+			if [[ $USER_CMD != "update" ]] && [ ${#LLX_NO_UPDATE} -eq 0 ]
+			then
+				apt-get update
+			fi
+			#Pinning option must be added after repositories are updated
+			if [ ${#LLX_NO_PINNING} -gt 0 ]
+			then
+				LLX_APT_EXTRA=$LLX_APT_EXTRA" -o APT::Default-release=$RELEASE"
+			fi
 		fi
 		# use a dirty trick to avoid output of warnings related to duplicated lines in sources.list
 		apt $LLX_APT_EXTRA $USER_CMD_ARGS 2> >(grep -v 'W: .*' >&2)
