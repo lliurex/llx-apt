@@ -177,7 +177,7 @@ main(){
 			create_environment || die "Failed to create apt environment"
 			if [[ $USER_CMD != "update" ]] && [ ${#LLX_NO_UPDATE} -eq 0 ]
 			then
-				apt-get update
+				apt $LLX_APT_EXTRA update 2> >(grep -v 'W: .*' >&2)
 			fi
 			#Pinning option must be added after repositories are updated
 			if [ ${#LLX_NO_PINNING} -gt 0 ]
