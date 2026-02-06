@@ -170,7 +170,7 @@ main(){
 				echo "Removing pinning is dangerous and could let to troubles"
 				echo "Only continue if you're sure that pinning really must be removed"
 				echo "ONLY IF YOU'RE SURE"
-				echo "Are you sure? y/[n] "
+				echo -n "Are you sure? y/[n] "
 				read SURE
 				[[ $SURE != "y" ]] && die "Operation aborted"
 			fi
@@ -184,6 +184,11 @@ main(){
 			then
 				LLX_APT_EXTRA=$LLX_APT_EXTRA" -o APT::Default-release=$RELEASE"
 			fi
+		else
+			echo "If you continue without updating the repositories the info provided could be unaccurated."
+			echo -n "Continue without updating repository information? [y]/n "
+			read SURE
+			[[ $SURE != "y" ]] && sudo apt $LLX_APT_EXTRA update 2> >(grep -v 'W: .*' >&2)
 		fi
 		# use a dirty trick to avoid output of warnings related to duplicated lines in sources.list
 		apt $LLX_APT_EXTRA $USER_CMD_ARGS 2> >(grep -v 'W: .*' >&2)
