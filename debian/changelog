@@ -1,3 +1,11 @@
+llx-apt (1.3) jammy; urgency=medium
+
+  * Templates to avoid release specific files
+  * Added "--no-pinning"
+  * Added "--no-udpate"
+
+ -- Juanma1980 <juanma1980@gmail.com>  Fri, 06 Feb 2026 09:49:34 +0100
+
 llx-apt (1.2) jammy; urgency=medium
 
   * Added 'download' to llx-apt
