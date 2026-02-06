@@ -50,9 +50,9 @@ die(){
                 TYPE="$1"
                 shift
         fi
-        printf "${TYPE}: " >&2
+        printf "\n\t${TYPE}: " >&2
         while [ "$1" ] ; do
-                echo "$1" >&2
+                echo "** $1 **" >&2
                 shift
         done
 		usage
@@ -64,13 +64,14 @@ die(){
 usage(){
         printf "\r      \n \
         Usage\n
-		$(basename "$0") {$LLX_APT_RELEASES}[+ubuntu] [--no-update] [--no-pinning] [OPTIONS ...] COMMAND [ARGUMENTS ...]\n \
-	   \n\t\tRepository: Mandatory. One from pre or unstable. Additionally add +ubuntu to include ubuntu repositories
+		$(basename "$0") REPOSITORY[+ubuntu] [--no-update] [--no-pinning] [OPTIONS ...] COMMAND [ARGUMENTS ...]\n \
+	   \n\t\tREPOSITORY: Mandatory. {pre|unstable}. Additionally add +ubuntu to include ubuntu repositories\n \
 	   \t--no-update: Doesn't update apt information\n \
 	   \t--no-pinning: Disable pinning\n \
        \tOPTIONS: [*ANY APT OPTION*]\n \
-	   \tCOMMAND: {$LLX_APT_CMDS}\n \
-	   \t(append '+ubuntu' to include ubuntu in sources.list)\n"
+	   \tCOMMAND: {$LLX_APT_CMDS}\n 
+        Example\n \
+		$(basename "$0") pre+ubuntu policy firefox\n"
 }
 
 expand_repo(){
@@ -170,7 +171,7 @@ main(){
 				echo "Removing pinning is dangerous and could let to troubles"
 				echo "Only continue if you're sure that pinning really must be removed"
 				echo "ONLY IF YOU'RE SURE"
-				echo "Are you sure? y/[n] "
+				echo -n "Are you sure? y/[n] "
 				read SURE
 				[[ $SURE != "y" ]] && die "Operation aborted"
 			fi
@@ -184,6 +185,11 @@ main(){
 			then
 				LLX_APT_EXTRA=$LLX_APT_EXTRA" -o APT::Default-release=$RELEASE"
 			fi
+		else
+			echo "If you continue without updating the repositories the info provided could be unaccurated."
+			echo -n "Continue without updating repository information? [y]/n "
+			read SURE
+			[[ $SURE != "y" ]] && sudo apt $LLX_APT_EXTRA update 2> >(grep -v 'W: .*' >&2)
 		fi
 		# use a dirty trick to avoid output of warnings related to duplicated lines in sources.list
 		apt $LLX_APT_EXTRA $USER_CMD_ARGS 2> >(grep -v 'W: .*' >&2)
