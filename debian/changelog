@@ -1,3 +1,9 @@
+llx-apt (1.4) noble; urgency=medium
+
+  * Add baikonur stable (aka testing)
+
+ -- Juanma1980 <juanma1980@gmail.com>  Tue, 28 Jul 2026 14:06:00 +0200
+
 llx-apt (1.3) noble; urgency=medium
 
   * Use templates for sourceslist
