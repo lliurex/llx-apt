@@ -1,4 +1,4 @@
-llx-apt (1.4.1) jammy; urgency=medium
+llx-apt (1.4.1) noble; urgency=medium
 
   * Manage '--no-update' with a warning message in a non interactive way
   * Fixed automatic 'apt update' in case of no previous call to 'create_environment'
