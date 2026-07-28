@@ -1,3 +1,10 @@
+llx-apt (1.4.1) jammy; urgency=medium
+
+  * Manage '--no-update' with a warning message in a non interactive way
+  * Fixed automatic 'apt update' in case of no previous call to 'create_environment'
+
+ -- Luis Garcia Gisbert <luisgg@gmail.com>  Tue, 28 Jul 2026 15:21:58 +0200
+
 llx-apt (1.4) noble; urgency=medium
 
   * Add baikonur stable (aka testing)
