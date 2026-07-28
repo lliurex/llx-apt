@@ -1,3 +1,9 @@
+llx-apt (1.4) jammy; urgency=medium
+
+  * Add baikonur stable (aka testing)
+
+ -- Juanma1980 <juanma1980@gmail.com>  Tue, 28 Jul 2026 14:07:43 +0200
+
 llx-apt (1.3) jammy; urgency=medium
 
   * Templates to avoid release specific files
