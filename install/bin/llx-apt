@@ -105,6 +105,20 @@ create_environment(){
 
 }
 
+test_root(){
+	[ $(id -u) -eq 0 ] || return 1
+	return 0
+}
+
+do_update(){
+	CMD="$0 $REPO update"
+	if ! test_root ; then
+		warning "using sudo to run '$CMD' command (please enter your password if required)"
+		CMD="sudo $CMD"
+	fi
+	$CMD
+}
+
 main(){
 	# sanity checks
 
@@ -148,7 +162,7 @@ main(){
 
 	if [ -z "$LLX_APT_DEBUG" ] && [ "$LLX_ROOT_REQUIRED" ]; then
 		# test root privileges
-		[ $(id -u) -eq 0 ] || die "root privileges required"
+		test_root || die "root privileges required"
 	fi
 
 	LLX_NO_UPDATE=$(echo $USER_CMD_ARGS | grep -o [-]*no-update)
@@ -187,7 +201,8 @@ main(){
 			create_environment || die "Failed to create apt environment"
 			if [[ $USER_CMD != "update" ]] ; then
 				if [ ${#LLX_NO_UPDATE} -eq 0 ]; then
-					apt $LLX_APT_EXTRA update 2> >(grep -v 'W: .*' >&2)
+					#apt $LLX_APT_EXTRA update 2> >(grep -v 'W: .*' >&2)
+					do_update
 				else
 					no_update_warn
 				fi
@@ -203,7 +218,8 @@ main(){
 				#echo -n "Continue without updating repository information? [y]/n "
 				#read SURE
 				SURE="n"
-				[[ $SURE != "y" ]] && sudo apt $LLX_APT_EXTRA update 2> >(grep -v 'W: .*' >&2)
+				#[[ $SURE != "y" ]] && sudo apt $LLX_APT_EXTRA update 2> >(grep -v 'W: .*' >&2)
+				do_update
 			else
 				no_update_warn
 			fi
