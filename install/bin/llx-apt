@@ -2,7 +2,7 @@
 
 #  Description:
 #
-# apt wrapper to manage LliureX "pre" and "unstable" repository
+# apt wrapper to manage LliureX "pre", "testing" and "unstable" repository
 # The script allows a limited set of the functionallity of apt command (search, install, etc ...)
 # without permanent changes in sources.list, apt configuration, apt lists, apt cache, etc
 # Run the script with no parameters to get help.
@@ -25,7 +25,7 @@ LLX_APT_OPTIONS="Dir::Cache::Archives|/var/cache/llx-apt/_@_REPO_@_/apt-archives
 LLX_APT_NONROOT_CMDS="list | search | show | policy | rdepends | download"
 LLX_APT_ROOT_CMDS="update | install | remove | clean"
 LLX_APT_CMDS="$LLX_APT_NONROOT_CMDS | $LLX_APT_ROOT_CMDS"
-LLX_APT_RELEASES0="pre|unstable"
+LLX_APT_RELEASES0="pre|unstable|testing"
 
 # use only available releases
 LLX_APT_RELEASES=""
@@ -44,6 +44,14 @@ LLX_ROOT_REQUIRED=""
 #############
 # functions #
 #############
+warning(){
+	die "WARNING" "$@"
+}
+
+no_update_warn(){
+	warning "llx-apt is running WITHOUT updating the repositories, so the info provided could be unaccurated."
+}
+
 die(){
         TYPE="ERROR"
         if [ "$#" -gt 1 ] ; then
@@ -55,6 +63,7 @@ die(){
                 echo "** $1 **" >&2
                 shift
         done
+        [ "$TYPE" = "ERROR" ] || return
 		usage
         echo "" >&2
 
@@ -65,7 +74,7 @@ usage(){
         printf "\r      \n \
         Usage\n
 		$(basename "$0") REPOSITORY[+ubuntu] [--no-update] [--no-pinning] [OPTIONS ...] COMMAND [ARGUMENTS ...]\n \
-	   \n\t\tREPOSITORY: Mandatory. {pre|unstable}. Additionally add +ubuntu to include ubuntu repositories\n \
+	   \n\t\tREPOSITORY: Mandatory. {pre|testing|unstable}. Additionally add +ubuntu to include ubuntu repositories\n \
 	   \t--no-update: Doesn't update apt information\n \
 	   \t--no-pinning: Disable pinning\n \
        \tOPTIONS: [*ANY APT OPTION*]\n \
@@ -176,9 +185,12 @@ main(){
 				[[ $SURE != "y" ]] && die "Operation aborted"
 			fi
 			create_environment || die "Failed to create apt environment"
-			if [[ $USER_CMD != "update" ]] && [ ${#LLX_NO_UPDATE} -eq 0 ]
-			then
-				apt $LLX_APT_EXTRA update 2> >(grep -v 'W: .*' >&2)
+			if [[ $USER_CMD != "update" ]] ; then
+				if [ ${#LLX_NO_UPDATE} -eq 0 ]; then
+					apt $LLX_APT_EXTRA update 2> >(grep -v 'W: .*' >&2)
+				else
+					no_update_warn
+				fi
 			fi
 			#Pinning option must be added after repositories are updated
 			if [ ${#LLX_NO_PINNING} -gt 0 ]
@@ -186,10 +198,15 @@ main(){
 				LLX_APT_EXTRA=$LLX_APT_EXTRA" -o APT::Default-release=$RELEASE"
 			fi
 		else
-			echo "If you continue without updating the repositories the info provided could be unaccurated."
-			echo -n "Continue without updating repository information? [y]/n "
-			read SURE
-			[[ $SURE != "y" ]] && sudo apt $LLX_APT_EXTRA update 2> >(grep -v 'W: .*' >&2)
+			if [ ${#LLX_NO_UPDATE} -eq 0 ] ; then 
+				#echo "If you continue without updating the repositories the info provided could be unaccurated."
+				#echo -n "Continue without updating repository information? [y]/n "
+				#read SURE
+				SURE="n"
+				[[ $SURE != "y" ]] && sudo apt $LLX_APT_EXTRA update 2> >(grep -v 'W: .*' >&2)
+			else
+				no_update_warn
+			fi
 		fi
 		# use a dirty trick to avoid output of warnings related to duplicated lines in sources.list
 		apt $LLX_APT_EXTRA $USER_CMD_ARGS 2> >(grep -v 'W: .*' >&2)
