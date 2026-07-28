@@ -44,6 +44,14 @@ LLX_ROOT_REQUIRED=""
 #############
 # functions #
 #############
+warning(){
+	die "WARNING" "$@"
+}
+
+no_update_warn(){
+	warning "llx-apt is running WITHOUT updating the repositories, so the info provided could be unaccurated."
+}
+
 die(){
         TYPE="ERROR"
         if [ "$#" -gt 1 ] ; then
@@ -55,6 +63,7 @@ die(){
                 echo "** $1 **" >&2
                 shift
         done
+        [ "$TYPE" = "ERROR" ] || return
 		usage
         echo "" >&2
 
@@ -176,9 +185,12 @@ main(){
 				[[ $SURE != "y" ]] && die "Operation aborted"
 			fi
 			create_environment || die "Failed to create apt environment"
-			if [[ $USER_CMD != "update" ]] && [ ${#LLX_NO_UPDATE} -eq 0 ]
-			then
-				apt $LLX_APT_EXTRA update 2> >(grep -v 'W: .*' >&2)
+			if [[ $USER_CMD != "update" ]] ; then
+				if [ ${#LLX_NO_UPDATE} -eq 0 ]; then
+					apt $LLX_APT_EXTRA update 2> >(grep -v 'W: .*' >&2)
+				else
+					no_update_warn
+				fi
 			fi
 			#Pinning option must be added after repositories are updated
 			if [ ${#LLX_NO_PINNING} -gt 0 ]
@@ -186,10 +198,15 @@ main(){
 				LLX_APT_EXTRA=$LLX_APT_EXTRA" -o APT::Default-release=$RELEASE"
 			fi
 		else
-			echo "If you continue without updating the repositories the info provided could be unaccurated."
-			echo -n "Continue without updating repository information? [y]/n "
-			read SURE
-			[[ $SURE != "y" ]] && sudo apt $LLX_APT_EXTRA update 2> >(grep -v 'W: .*' >&2)
+			if [ ${#LLX_NO_UPDATE} -eq 0 ] ; then 
+				#echo "If you continue without updating the repositories the info provided could be unaccurated."
+				#echo -n "Continue without updating repository information? [y]/n "
+				#read SURE
+				SURE="n"
+				[[ $SURE != "y" ]] && sudo apt $LLX_APT_EXTRA update 2> >(grep -v 'W: .*' >&2)
+			else
+				no_update_warn
+			fi
 		fi
 		# use a dirty trick to avoid output of warnings related to duplicated lines in sources.list
 		apt $LLX_APT_EXTRA $USER_CMD_ARGS 2> >(grep -v 'W: .*' >&2)
